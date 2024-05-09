@@ -1,0 +1,114 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.InputSystem;
+
+public class XRMovement : MonoBehaviour
+{
+    public float movementSpeed = 100f;
+    public float jumpSpeed = 10f;
+    public Transform groundCheck;
+    public LayerMask groundLayer;
+    public float sprintDuration = 3f;
+    public float sprintCooldown = 5f;
+    public float sprintMultiplier = 10f; // sprint speed multiplier
+
+    private bool isSprinting = false;
+    private bool isJumping = false;
+    private float sprintTimer = 0f;
+    private float sprintCoolDown = 0f;
+
+    private CharacterController controller;
+    private Vector3 velocity;
+    private PlayerInput playerInput;
+    private InputAction sprintAction;
+    private InputAction jumpAction;
+
+    void Awake()
+    {
+        controller = GetComponent<CharacterController>();
+        playerInput = GetComponent<PlayerInput>();
+        sprintAction = playerInput.actions["Sprint"];
+        jumpAction = playerInput.actions["Jump"];
+        sprintCooldown = 0f;
+    }
+
+    private void Update()
+    {
+        var sprintInput = sprintAction.ReadValue<float>();
+        var jumpInput = jumpAction.ReadValue<float>();
+
+        UnityEngine.Debug.Log(sprintInput);
+
+        if (sprintInput > 0 && !isSprinting && sprintCoolDown <= 0f)
+        {
+            StartSprinting();
+            
+        }
+
+        if (isSprinting)
+        {
+            SprintingLogic();
+        }
+
+        if (controller.isGrounded && jumpInput > 0)
+        {
+            Jump();
+            UnityEngine.Debug.Log("Jump!");
+        }
+
+        controller.Move(velocity * Time.deltaTime);
+    }
+
+    private void StartSprinting()
+    {
+        isSprinting = true;
+        velocity.x *= sprintMultiplier;
+        velocity.z *= sprintMultiplier;
+        sprintTimer = sprintDuration;
+        sprintCoolDown = sprintCooldown;
+        StartCoroutine(SprintingCoroutine());
+    }
+
+    private IEnumerator SprintingCoroutine()
+    {
+        while (sprintTimer > 0f)
+        {
+            sprintTimer -= Time.deltaTime;
+            yield return null;
+        }
+
+        StopSprinting();
+    }
+
+    private void StopSprinting()
+    {
+        isSprinting = false;
+        movementSpeed /= sprintMultiplier;
+    }
+
+    private void SprintingLogic()
+    {
+        sprintCoolDown -= Time.deltaTime;
+    }
+
+    private void Jump()
+    {
+        isJumping = true;
+        velocity.y = Mathf.Sqrt(jumpSpeed * 2f * Physics.gravity.y);
+    }
+
+    private void FixedUpdate()
+    {
+        if (isJumping)
+        {
+            velocity.y += Physics.gravity.y * Time.deltaTime;
+            if (velocity.y < 0f)
+            {
+                isJumping = false;
+            }
+        }
+    }
+}
+        
