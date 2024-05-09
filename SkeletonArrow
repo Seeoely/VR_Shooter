@@ -1,0 +1,75 @@
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine.UI;
+using TMPro;
+using System.Diagnostics;
+
+public class SkeletonArrow : MonoBehaviour
+{
+    public static int damageAmount = 10;
+    //public float bulletSpeed = 10f;
+    public GameObject SkeletonArrowPrefab;
+    private GameObject InstanceSkeletonArrow;
+    public Transform SkeletonPosition;
+    public float SkeletonArrowSpeed = 50f;
+    public int maxAmmo = 3;
+    private int ammoCount;
+    public float reloadTime = 3f;
+    public float fireRate = 1f;
+    private bool isReloading = false;
+    private bool isShooting = false;
+
+
+    private void Update()
+    {
+        Shoot();
+        Reload();
+    }
+
+    void Shoot()
+    {
+        if (ammoCount > 0 && !isReloading && !isShooting)
+        {
+            isShooting = true;
+            StartCoroutine(ShootCoroutine()); // Use a coroutine for controlled shooting
+        }
+    }
+
+    private IEnumerator ShootCoroutine()
+    {
+        ammoCount--;
+
+        // Create an offset in front of the Skeleton
+        Vector3 spawnPosition = SkeletonPosition.position + SkeletonPosition.forward * 2f;
+
+        GameObject InstanceSkeletonArrow = Instantiate(SkeletonArrowPrefab, spawnPosition, Quaternion.identity);
+        InstanceSkeletonArrow.transform.forward = transform.forward;
+
+        Rigidbody SkeletonArrowRigidbody = InstanceSkeletonArrow.GetComponent<Rigidbody>();
+
+        // Set the velocity of the bullet in the shoot direction
+        SkeletonArrowRigidbody.velocity = SkeletonPosition.forward * SkeletonArrowSpeed;
+
+        Destroy(InstanceSkeletonArrow, 5f);
+
+        yield return new WaitForSeconds(fireRate);
+        isShooting = false;
+    }
+
+    void Reload()
+    {
+        if (ammoCount <= 0 && !isReloading)
+        {
+            StartCoroutine(ReloadCoroutine());
+        }
+    }
+
+    private IEnumerator ReloadCoroutine()
+    {
+        isReloading = true;
+        yield return new WaitForSeconds(reloadTime);
+        ammoCount = maxAmmo;
+        isReloading = false;
+    }
+}
