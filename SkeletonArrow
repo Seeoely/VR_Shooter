@@ -5,10 +5,10 @@ using UnityEngine.UI;
 using TMPro;
 using System.Diagnostics;
 
+// This script controls the behavior of the Skeleton's arrow
 public class SkeletonArrow : MonoBehaviour
 {
     public static int damageAmount = 10;
-    //public float bulletSpeed = 10f;
     public GameObject SkeletonArrowPrefab;
     private GameObject InstanceSkeletonArrow;
     public Transform SkeletonPosition;
@@ -20,13 +20,14 @@ public class SkeletonArrow : MonoBehaviour
     private bool isReloading = false;
     private bool isShooting = false;
 
-
+    // Update is called once per frame
     private void Update()
     {
         Shoot();
         Reload();
     }
 
+    // Shoots an arrow if there is ammo available
     void Shoot()
     {
         if (ammoCount > 0 && !isReloading && !isShooting)
@@ -36,6 +37,7 @@ public class SkeletonArrow : MonoBehaviour
         }
     }
 
+    // Coroutine for shooting an arrow
     private IEnumerator ShootCoroutine()
     {
         ammoCount--;
@@ -57,6 +59,7 @@ public class SkeletonArrow : MonoBehaviour
         isShooting = false;
     }
 
+    // Reloads the Skeleton's arrow if there is no ammo
     void Reload()
     {
         if (ammoCount <= 0 && !isReloading)
@@ -65,6 +68,7 @@ public class SkeletonArrow : MonoBehaviour
         }
     }
 
+    // Coroutine for reloading the Skeleton's arrow
     private IEnumerator ReloadCoroutine()
     {
         isReloading = true;
