@@ -1,37 +1,35 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using UnityEngine.XR.Interaction.Toolkit;
 
 public class XRMovement : MonoBehaviour
 {
-    public float movementSpeed = 100f;
-    public float jumpSpeed = 10f;
+    public ActionBasedContinuousMoveProvider CMP;
+    public float jumpSpeed = 5f;
     public Transform groundCheck;
     public LayerMask groundLayer;
     public float sprintDuration = 3f;
     public float sprintCooldown = 5f;
-    public float sprintMultiplier = 10f; // sprint speed multiplier
-
+    public float sprintMultiplier = 1.5f;
+    private float sprintTimer;
+    private float activeSprintCooldown;
     private bool isSprinting = false;
-    private bool isJumping = false;
-    private float sprintTimer = 0f;
-    private float sprintCoolDown = 0f;
 
     private CharacterController controller;
     private Vector3 velocity;
     private PlayerInput playerInput;
     private InputAction sprintAction;
     private InputAction jumpAction;
+    private bool isGrounded;
 
+    // Initialize components and input actions
     void Awake()
     {
         controller = GetComponent<CharacterController>();
         playerInput = GetComponent<PlayerInput>();
         sprintAction = playerInput.actions["Sprint"];
         jumpAction = playerInput.actions["Jump"];
-        sprintCooldown = 0f;
     }
 
     private void Update()
@@ -39,38 +37,39 @@ public class XRMovement : MonoBehaviour
         var sprintInput = sprintAction.ReadValue<float>();
         var jumpInput = jumpAction.ReadValue<float>();
 
-        UnityEngine.Debug.Log(sprintInput);
-
-        if (sprintInput > 0 && !isSprinting && sprintCoolDown <= 0f)
+        // Handle sprinting input and logic
+        if (sprintInput > 0 && !isSprinting && activeSprintCooldown <= 0f)
         {
             StartSprinting();
-            
         }
 
-        if (isSprinting)
+        // Handle sprinting logic when not sprinting
+        if (!isSprinting)
         {
             SprintingLogic();
         }
 
-        if (controller.isGrounded && jumpInput > 0)
+        // Handle jumping input
+        if (velocity.y <= 0 && jumpInput > 0)
         {
             Jump();
-            UnityEngine.Debug.Log("Jump!");
         }
 
-        controller.Move(velocity * Time.deltaTime);
+        // Apply gravity to the player
+        ApplyGravity();
     }
 
+    // Start the sprinting process
     private void StartSprinting()
     {
         isSprinting = true;
-        velocity.x *= sprintMultiplier;
-        velocity.z *= sprintMultiplier;
         sprintTimer = sprintDuration;
-        sprintCoolDown = sprintCooldown;
+        CMP.moveSpeed *= sprintMultiplier;
+        activeSprintCooldown = sprintCooldown;
         StartCoroutine(SprintingCoroutine());
     }
 
+    // Coroutine to manage sprint duration
     private IEnumerator SprintingCoroutine()
     {
         while (sprintTimer > 0f)
@@ -82,33 +81,42 @@ public class XRMovement : MonoBehaviour
         StopSprinting();
     }
 
+    // Stop the sprinting process
     private void StopSprinting()
     {
         isSprinting = false;
-        movementSpeed /= sprintMultiplier;
+        CMP.moveSpeed /= sprintMultiplier;
     }
 
+    // Manage sprint cooldown logic
     private void SprintingLogic()
     {
-        sprintCoolDown -= Time.deltaTime;
-    }
-
-    private void Jump()
-    {
-        isJumping = true;
-        velocity.y = Mathf.Sqrt(jumpSpeed * 2f * Physics.gravity.y);
-    }
-
-    private void FixedUpdate()
-    {
-        if (isJumping)
+        if (activeSprintCooldown > 0f)
         {
-            velocity.y += Physics.gravity.y * Time.deltaTime;
-            if (velocity.y < 0f)
-            {
-                isJumping = false;
-            }
+            activeSprintCooldown -= Time.deltaTime;
         }
     }
+
+    // Apply the jump force
+    private void Jump()
+    {
+        velocity.y = Mathf.Sqrt(jumpSpeed * -2f * Physics.gravity.y);
+    }
+
+    // Apply gravity and manage vertical movement
+    private void ApplyGravity()
+    {
+        if (!controller.isGrounded)
+        {
+            velocity.y += Physics.gravity.y * Time.deltaTime;
+        }
+
+        if (controller.isGrounded)
+        {
+            velocity.y = -2f; // Small value to keep the player grounded
+        }
+
+        // Move the character controller with the calculated velocity
+        controller.Move(velocity * Time.deltaTime);
+    }
 }
-        
